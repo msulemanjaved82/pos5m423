@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'inventory_list_screen.dart';
 import 'sale_screen.dart';
-import 'watchlist_screen.dart';
+import 'report.dart';
 import 'add_product_screen.dart';
+import 'stockalert.dart';
 
 class InventoryScreen extends StatefulWidget {
   final List<Map<String, dynamic>> products;
@@ -36,7 +37,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: Color(0xFF2BD6A3),
+        backgroundColor: Color.fromARGB(255, 11, 111, 81),
         centerTitle: true,
       ),
       body: Column(
@@ -69,7 +70,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ],
       ),
       bottomNavigationBar: Container(
-        color: Color(0xFF2BD6A3),
+        color: Color.fromARGB(255, 11, 111, 81),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
@@ -82,23 +83,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
             IconButton(
               icon: Icon(
-                Icons.inventory,
+                Icons.add_shopping_cart,
                 size: 35.0,
               ),
-              onPressed: () => _onItemTapped(1),
-              color: _selectedIndex == 1
-                  ? Color.fromARGB(255, 255, 255, 255)
-                  : Colors.black,
-            ),
-            IconButton(
-              icon: Icon(Icons.add_shopping_cart, size: 35.0),
               onPressed: () => _onItemTapped(2),
               color: _selectedIndex == 2
                   ? Color.fromARGB(255, 255, 255, 255)
                   : Colors.black,
             ),
             IconButton(
-              icon: Icon(Icons.watch_later, size: 35.0),
+              icon: Icon(Icons.inventory, size: 35.0),
+              onPressed: () => _onItemTapped(1),
+              color: _selectedIndex == 1
+                  ? Color.fromARGB(255, 255, 255, 255)
+                  : Colors.black,
+            ),
+            IconButton(
+              icon: Icon(Icons.report, size: 40.0),
               onPressed: () => _onItemTapped(3),
               color: _selectedIndex == 3
                   ? Color.fromARGB(255, 255, 255, 255)
@@ -125,7 +126,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   }
                 }
               },
-              backgroundColor: Color.fromARGB(255, 246, 208, 37),
+              backgroundColor: Color.fromARGB(255, 82, 237, 65),
               child: Icon(Icons.add),
             )
           : null,
@@ -142,15 +143,80 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  // Inside _InventoryScreenState
+
+  void _increaseQuantity(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        int quantityToAdd = 1; // Default quantity to add
+        return AlertDialog(
+          title: Text('Increase Quantity'),
+          content: TextFormField(
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: 'Enter quantity to add'),
+            onChanged: (value) {
+              quantityToAdd = int.tryParse(value) ?? 1;
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  widget.products[index]['quantity'] += quantityToAdd;
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Add'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _updateInventory(List<Map<String, dynamic>> updatedProducts) {
+    setState(() {
+      // Update inventory quantities
+      for (var updatedProduct in updatedProducts) {
+        int existingProductIndex = widget.products.indexWhere(
+          (product) => product['id'] == updatedProduct['id'],
+        );
+
+        if (existingProductIndex != -1) {
+          // Reduce the quantity in inventory
+          widget.products[existingProductIndex]['quantity'] -=
+              updatedProduct['quantity'];
+        }
+      }
+    });
+  }
+
   void _addProduct(Map<String, dynamic> newProduct) {
     setState(() {
-      bool productExists = widget.products.any((product) =>
-          product['name'] == newProduct['name'] &&
-          product['price'] == newProduct['price'] &&
-          product['quantity'] == newProduct['quantity']);
+      // Check if the product already exists by its name
+      int existingProductIndex = widget.products.indexWhere(
+        (product) => product['name'] == newProduct['name'],
+      );
 
-      if (!productExists) {
-        widget.products.add(newProduct);
+      int quantityToAdd = newProduct['quantity'] ??
+          0; // Default quantity to add if not provided
+
+      if (quantityToAdd > 0) {
+        if (existingProductIndex != -1) {
+          // Product already exists, update the quantity
+          widget.products[existingProductIndex]['quantity'] += quantityToAdd;
+        } else {
+          // Product doesn't exist, add it to the list
+          newProduct['quantity'] = quantityToAdd;
+          widget.products.add(newProduct);
+        }
       }
     });
   }
@@ -166,7 +232,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
           onInventoryPressed: () {
             _onItemTapped(1);
           },
+          onLowStockPressed: () {
+            _onItemTapped(4);
+          },
+          onReportPressed: () {
+            _onItemTapped(3);
+          },
         );
+
       case 1:
         final filteredProducts = _filterProducts();
         return InventoryListScreen(
@@ -174,11 +247,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
           onInventoryPressed: () {
             _onItemTapped(1);
           },
+          onQuantityIncreased: _increaseQuantity,
         );
       case 2:
-        return SaleScreen();
+        return SaleScreen(
+          products: widget.products,
+          onSaleComplete: _updateInventory,
+        );
       case 3:
-        return WatchlistScreen();
+        return ReportScreen();
+      case 4:
+        return LowStockAlertScreen();
       default:
         return Container();
     }
@@ -193,7 +272,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       case 2:
         return 'Sale';
       case 3:
-        return 'Watchlist';
+        return 'SalesReports';
+      case 4:
+        return 'Low Stock Alert';
       default:
         return '';
     }

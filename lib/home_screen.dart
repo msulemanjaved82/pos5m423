@@ -4,11 +4,15 @@ class HomeScreen extends StatelessWidget {
   final Function onStartSalePressed;
   final List<Map<String, dynamic>> products;
   final Function onInventoryPressed;
+  final Function onLowStockPressed;
+  final Function onReportPressed;
 
   HomeScreen({
     required this.onStartSalePressed,
     required this.products,
     required this.onInventoryPressed,
+    required this.onLowStockPressed,
+    required this.onReportPressed,
   });
 
   @override
@@ -19,18 +23,18 @@ class HomeScreen extends StatelessWidget {
         Padding(
           padding: EdgeInsets.only(top: 45, bottom: 15),
           child: Container(
-            width: 320,
+            width: 340,
             height: 131,
             padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             decoration: BoxDecoration(
               color: Color.fromARGB(255, 33, 246, 228),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(40),
             ),
             child: Row(
               children: [
                 CircleAvatar(
                   backgroundColor: Colors.black,
-                  radius: 35,
+                  radius: 40,
                   child: Icon(Icons.person,
                       color: Color.fromARGB(255, 33, 246, 228), size: 50),
                 ),
@@ -66,11 +70,11 @@ class HomeScreen extends StatelessWidget {
             _buildCard(context, 'Inventory', Icons.storage, () {
               onInventoryPressed(); // Navigates to Inventory Screen
             }),
-            _buildCard(context, 'Expiration Watchlist', Icons.watch_later, () {
-              print('Expiration Watchlist card pressed');
+            _buildCard(context, 'Reports', Icons.report, () {
+              onReportPressed();
             }),
             _buildCard(context, 'Low Stock Alert', Icons.warning, () {
-              print('Low Stock Alert card pressed');
+              onLowStockPressed();
             }),
           ],
         ),
@@ -84,7 +88,7 @@ class HomeScreen extends StatelessWidget {
       onTap: onPressed,
       child: Card(
         elevation: 4,
-        margin: EdgeInsets.all(10),
+        margin: EdgeInsets.all(1),
         color: Color.fromARGB(255, 33, 246, 228),
         shadowColor: Colors.grey,
         child: Padding(
@@ -94,7 +98,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 50,
+                size: 70,
                 color: const Color.fromARGB(255, 0, 0, 0),
               ),
               SizedBox(height: 10),
